@@ -1,0 +1,35 @@
+pipeline{
+    agent any
+    
+    environment{
+        PATH = "/opt/maven3/bin:$PATH"
+    }
+    stages{
+        stage("Git Checkout"){
+            steps{
+                git credentialsId: '84a12caf-291a-4025-9fb8-8c3af29a8bef', url: 'https://github.com/sreekantha1202/myweb.git'
+            }
+        }
+        stage("Maven Build"){
+            steps{
+                sh "mvn clean package"
+                sh "mv target/*.war target/myweb.war"
+            }
+        }
+        stage("deploy-dev"){
+            steps{
+                sshagent(['tomcat-new']) {
+                sh """
+                    scp -o StrictHostKeyChecking=no target/myweb.war  root@192.168.56.118:/root/apache-tomcat-9.0.59/webapps/
+                    
+                    ssh root@192.168.56.118 /root/apache-tomcat-9.0.59/bin/shutdown.sh
+                    
+                    ssh root@192.168.56.118 /root/apache-tomcat-9.0.59/bin/startup.sh
+                
+                """
+            }
+            
+            }
+        }
+    }
+}
